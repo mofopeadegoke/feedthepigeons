@@ -66,8 +66,9 @@ export function createFeeding(deps: FeedingDeps, options: FeedingOptions = {}): 
     const spinHi = reduced ? A.reducedSpinMax : A.spinMax;
     const spin = (spinLo + Math.random() * (spinHi - spinLo)) * (isDrop ? 0.45 : 1);
 
-    bread.tearPoint(from);
+    // Tear first: the bite it takes decides where on the edge the crumb comes away from.
     bread.tear(to, isDrop ? 0.6 : 0.8 + Math.min(1, dist / 10) * 0.5);
+    bread.tearPoint(from);
     const crumb = crumbs.toss(from, to, t, { input: kind, apex, spin });
 
     if (state.recordToss()) {

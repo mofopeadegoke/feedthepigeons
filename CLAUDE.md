@@ -19,7 +19,7 @@ This is a design-engineering portfolio piece. How it feels matters more than how
 - **Camera**: fixed bench-sitter view looking down the path, slight drift with the pointer. It sits close when the flock is small and eases back as the flock grows.
 
 ### Throwing
-- **Bread is infinite.**
+- **Bread is infinite.** Each toss tears a visible bite from the side of the slice facing the throw. Once tossing pauses, the bites slowly fill back in.
 - **Phone**: swipe up and away from the bread. Swipe length sets distance (on a curve: fine control near, long reach far), sideways movement aims. Dragging back to the bread cancels.
 - **Desktop mouse**: press, drag, release, with the same mapping as the phone swipe.
 - **Keyboard**: Space/Enter tosses to a soft aim ring on the ground, and arrow keys move the ring. If the ring is never moved, it drifts to a random spot near the flock after each toss. Screen readers get announcements ("Crumb tossed. Gerald is eating.").
@@ -37,7 +37,7 @@ This is a design-engineering portfolio piece. How it feels matters more than how
 ### Streak, flock, Gerald (all in `localStorage`, every access wrapped in try/catch)
 - **Fed today** = at least one crumb tossed on the visitor's **local calendar day**. A full missed calendar day resets the streak to 1.
 - **Familiarity** (hidden): +1 per day fed, −2 per missed day, never below 1.
-- **Flock size** follows a curve on familiarity: 1→1, 2→2, 3→3, 7→6, 14→10, 30→18, capped at 24 (from roughly 45). New birds flutter in while you watch. Birds lost to missed days are simply gone when you return (nobody visibly leaves).
+- **Flock size** follows a curve on familiarity: 1→5, 3→6, 7→8, 14→12, 30→18, capped at 24 (from roughly 45). Visitors start with 5 pigeons and never drop below 5. New birds flutter in while you watch. Birds lost to missed days are simply gone when you return (nobody visibly leaves).
 - **Offended**: on the first visit after one or more missed days, the flock stands with backs half-turned, puffed up, and ignores the first 3 crumbs. They glance at the 4th and forgive at the 5th. Gerald forgives first. It lasts one visit and doesn't scale with the number of missed days.
 - **Gerald** is the regular, marked by a pale patch on one wing. His bravery follows **total days ever fed** and never regresses:
   - from day 1: keeps his distance and only eats far crumbs

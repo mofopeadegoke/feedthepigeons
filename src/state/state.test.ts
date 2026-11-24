@@ -62,21 +62,21 @@ test('DST transitions do not create or swallow a day', () => {
 /* ------------------------------------------------------------------ curves */
 
 test('flock curve hits its anchor points', () => {
-  const anchors: Array<[number, number]> = [[1, 1], [2, 2], [3, 3], [7, 6], [14, 10], [30, 18], [45, 24]];
+  const anchors: Array<[number, number]> = [[1, 5], [3, 6], [7, 8], [14, 12], [30, 18], [45, 24]];
   for (const [f, n] of anchors) assert.equal(S.flockSizeFor(f), n, `familiarity ${f}`);
 });
 
 test('flock curve interpolates, rounds, is monotonic and bounded', () => {
-  assert.equal(S.flockSizeFor(5), 5); // 3 + 3 * (2/4) = 4.5 → 5
-  assert.equal(S.flockSizeFor(22), 14);
-  assert.equal(S.flockSizeFor(0), 1);
-  assert.equal(S.flockSizeFor(-4), 1);
-  assert.equal(S.flockSizeFor(Number.NaN), 1);
+  assert.equal(S.flockSizeFor(5), 7); // 6 + 2 * (2/4) = 7
+  assert.equal(S.flockSizeFor(22), 15);
+  assert.equal(S.flockSizeFor(0), 5);
+  assert.equal(S.flockSizeFor(-4), 5);
+  assert.equal(S.flockSizeFor(Number.NaN), 5);
   assert.equal(S.flockSizeFor(100), 24);
   let prev = 0;
   for (let f = 1; f <= 60; f++) {
     const n = S.flockSizeFor(f);
-    assert.ok(n >= prev && n >= 1 && n <= 24, `familiarity ${f} → ${n}`);
+    assert.ok(n >= prev && n >= 5 && n <= 24, `familiarity ${f} → ${n}`);
     prev = n;
   }
 });
@@ -102,7 +102,7 @@ test('a brand-new visitor', () => {
     streak: 0,
     familiarity: 1,
     totalDaysFed: 0,
-    flockSize: 1,
+    flockSize: 5,
     geraldStage: 0,
     offended: false,
     firstVisitEver: true,
@@ -127,7 +127,7 @@ test('first toss of the day commits once; later tosses do not', () => {
   assert.equal(snap.totalDaysFed, 1);
   assert.equal(snap.fedToday, true);
   assert.equal(snap.hasThrownEver, true);
-  assert.equal(snap.flockSize, 1);
+  assert.equal(snap.flockSize, 5);
 });
 
 test('consecutive days build the streak and the flock', () => {
@@ -181,7 +181,7 @@ test('many missed days floor familiarity at 1', () => {
   const a = S.computeArrival(s, '2026-03-01');
   assert.equal(a.missed, 58);
   assert.equal(a.familiarity, 1);
-  assert.equal(a.flockSize, 1);
+  assert.equal(a.flockSize, 5);
   assert.equal(a.geraldStage, 3); // Gerald remembers even when the crowd doesn't.
   const next = S.commitFed(s, '2026-03-01');
   assert.equal(next.familiarity, 2);

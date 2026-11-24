@@ -77,19 +77,20 @@ export function daysBetween(a: string, b: string): number | null {
 
 /* ------------------------------------------------------------------ curves */
 
+// A handful of birds from the first visit so the park never feels empty; consistency earns the rest.
 const FLOCK_POINTS: ReadonlyArray<readonly [number, number]> = [
-  [1, 1],
-  [2, 2],
-  [3, 3],
-  [7, 6],
-  [14, 10],
+  [1, 5],
+  [3, 6],
+  [7, 8],
+  [14, 12],
   [30, 18],
   [45, 24],
 ];
+const MIN_FLOCK = 5;
 const MAX_FLOCK = 24;
 
 export function flockSizeFor(familiarity: number): number {
-  if (!Number.isFinite(familiarity) || familiarity <= 1) return 1;
+  if (!Number.isFinite(familiarity) || familiarity <= 1) return MIN_FLOCK;
   const last = FLOCK_POINTS[FLOCK_POINTS.length - 1]!;
   if (familiarity >= last[0]) return MAX_FLOCK;
   for (let i = 1; i < FLOCK_POINTS.length; i++) {
@@ -97,7 +98,7 @@ export function flockSizeFor(familiarity: number): number {
     if (familiarity <= x1) {
       const [x0, y0] = FLOCK_POINTS[i - 1]!;
       const t = (familiarity - x0) / (x1 - x0);
-      return Math.min(MAX_FLOCK, Math.max(1, Math.round(y0 + (y1 - y0) * t)));
+      return Math.min(MAX_FLOCK, Math.max(MIN_FLOCK, Math.round(y0 + (y1 - y0) * t)));
     }
   }
   return MAX_FLOCK;
@@ -144,7 +145,7 @@ export function computeArrival(stored: StoredVisit | null, today: string): Arriv
       streak: 0,
       familiarity: s.familiarity,
       offended: false,
-      flockSize: s.totalDaysFed > 0 ? flockSizeFor(s.familiarity) : 1,
+      flockSize: s.totalDaysFed > 0 ? flockSizeFor(s.familiarity) : MIN_FLOCK,
       geraldStage: geraldStageFor(s.totalDaysFed),
     };
   }
@@ -174,7 +175,7 @@ export function commitFed(stored: StoredVisit | null, today: string): StoredVisi
     ...s,
     lastFedDay: today,
     streak: gap === 1 ? s.streak + 1 : 1,
-    // Day one is familiarity 1, so the curve reads as "days of friendship": day 7 → 6 birds, day 30 → 18.
+    // Day one is familiarity 1, so the curve reads as "days of friendship": day 7 → 8 birds, day 30 → 18.
     familiarity: s.lastFedDay ? arrival.familiarity + 1 : 1,
     totalDaysFed: s.totalDaysFed + 1,
   };

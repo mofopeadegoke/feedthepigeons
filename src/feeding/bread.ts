@@ -6,7 +6,7 @@ export interface Bread {
   readonly object: THREE.Object3D;
   /** World point on the torn edge where the next crumb comes away. */
   tearPoint(out?: THREE.Vector3): THREE.Vector3;
-  /** Visible tear: pinch, squash and wobble, leaning toward the throw. */
+  /** Visible tear: a bite comes out of the side facing the throw, with a pinch, squash and wobble. */
   tear(toward: THREE.Vector3, strength?: number): void;
   /** While aiming, the slice leans a touch as if a finger is pulling at it. 0 = rest. */
   setPull(toward: THREE.Vector3 | null, amount: number): void;
@@ -104,7 +104,25 @@ interface SliceGeometry {
   geometry: THREE.BufferGeometry;
   /** Torn-edge midpoint in shape space (pre-rotation, pre-scale). */
   tearLocal: THREE.Vector3;
+  /** Shape-space point bites shrink toward; inside the slice from every direction. */
+  centre: THREE.Vector2;
+  /** Outline distance from `centre` per angle, for placing crumbs on the bitten edge. */
+  edgeRadius: (angle: number) => number;
+  depth: number;
 }
+
+/** Bites never take the slice below this fraction of its radius, so it always reads as bread. */
+const MAX_SHRINK = 0.46;
+/** Fraction of the radius one bite takes at its centre. */
+const BITE_DEPTH = 0.16;
+/** Angular half-width of one bite, radians. Wide enough that the cap triangulation can't fold. */
+const BITE_HALF_WIDTH = 0.42;
+const MAX_BITES = 18;
+/** Seconds of quiet before the slice starts making itself whole again. */
+const HEAL_DELAY = 1.8;
+/** Bite amount lost per second while healing; one full bite closes in about four seconds. */
+const HEAL_RATE = 0.26;
+const BITE_GROW_RATE = 9;
 
 function buildSlice(seed: number): SliceGeometry {
   const rnd = mulberry32(seed);
@@ -137,8 +155,13 @@ function buildSlice(seed: number): SliceGeometry {
   shape.lineTo(tornStart.x, tornStart.y);
   for (let i = 1; i < torn.length; i++) shape.lineTo(torn[i].x, torn[i].y);
 
+  // Long straight edges have a vertex only at each end; even spacing gives bites something to carve anywhere.
+  const outline = shape.getSpacedPoints(200);
+  if (outline.length > 1 && outline[0].distanceTo(outline[outline.length - 1]) < 1e-6) outline.pop();
+  const spaced = new THREE.Shape(outline);
+
   const depth = 0.12;
-  let geo: THREE.BufferGeometry = new THREE.ExtrudeGeometry(shape, {
+  let geo: THREE.BufferGeometry = new THREE.ExtrudeGeometry(spaced, {
     depth,
     bevelEnabled: true,
     bevelThickness: 0.028,
@@ -207,8 +230,65 @@ function buildSlice(seed: number): SliceGeometry {
   }
   geo.computeVertexNormals();
 
+  const centre = new THREE.Vector2(0.02, 0.08);
+  const RADII = 128;
+  const radii = new Float32Array(RADII);
+  for (let i = 0; i < RADII; i++) {
+    const a = (i / RADII) * Math.PI * 2;
+    const dx = Math.cos(a), dy = Math.sin(a);
+    // Ray against the outline; the slice is star-shaped about `centre`, so the nearest hit is the edge.
+    let hit = Infinity;
+    for (let j = 0; j < outline.length; j++) {
+      const p = outline[j], q = outline[(j + 1) % outline.length];
+      const ex = q.x - p.x, ey = q.y - p.y;
+      const den = dx * ey - dy * ex;
+      if (Math.abs(den) < 1e-9) continue;
+      const wx = p.x - centre.x, wy = p.y - centre.y;
+      const t = (wx * ey - wy * ex) / den;
+      const u = (wx * dy - wy * dx) / den;
+      if (t > 0 && u >= 0 && u <= 1 && t < hit) hit = t;
+    }
+    radii[i] = Number.isFinite(hit) ? hit : 0.4;
+  }
+  const edgeRadius = (angle: number) => {
+    const f = ((((angle / (Math.PI * 2)) % 1) + 1) % 1) * RADII;
+    const i0 = Math.floor(f) % RADII, i1 = (i0 + 1) % RADII;
+    return THREE.MathUtils.lerp(radii[i0], radii[i1], f - Math.floor(f));
+  };
+
   const mid = torn[Math.floor(torn.length / 2)];
-  return { geometry: geo, tearLocal: new THREE.Vector3(mid.x + 0.03, mid.y + 0.03, depth + 0.03) };
+  return {
+    geometry: geo,
+    tearLocal: new THREE.Vector3(mid.x + 0.03, mid.y + 0.03, depth + 0.03),
+    centre,
+    edgeRadius,
+    depth,
+  };
+}
+
+interface Bite {
+  angle: number;
+  /** 0..1 of a full bite currently carved; eases up when taken, back down when healing. */
+  amount: number;
+  target: number;
+  /** Pushed out by newer bites: heals even while tossing continues. */
+  retired: boolean;
+}
+
+const wrapAngle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+
+/** How much of the radius is missing at `angle`, from all live bites. */
+function shrinkAt(bites: readonly Bite[], angle: number): number {
+  let s = 0;
+  for (const b of bites) {
+    const d = Math.abs(wrapAngle(angle - b.angle));
+    if (d >= BITE_HALF_WIDTH) continue;
+    const w = Math.cos((d / BITE_HALF_WIDTH) * Math.PI * 0.5);
+    const e = b.amount * b.amount * (3 - 2 * b.amount);
+    s += BITE_DEPTH * e * w * w;
+  }
+  // Soft ceiling rather than a hard clamp so a saturated edge still has a rounded profile.
+  return MAX_SHRINK * (1 - Math.exp(-s / MAX_SHRINK));
 }
 
 /** Damped spring; tear wobble and pull lean both ride on these. */
@@ -234,7 +314,7 @@ class Spring {
 
 export function createBread(parent: THREE.Object3D, anchor: THREE.Vector3, shadows: boolean): Bread {
   const seed = 4127;
-  const { geometry, tearLocal } = buildSlice(seed);
+  const { geometry, tearLocal, centre, edgeRadius, depth } = buildSlice(seed);
   const { map, bump } = makeCrumbTextures(seed);
   const material = new THREE.MeshStandardMaterial({
     map,
@@ -274,6 +354,76 @@ export function createBread(parent: THREE.Object3D, anchor: THREE.Vector3, shado
   const tearWorld = new THREE.Vector3();
   const leanAxis = new THREE.Vector3();
 
+  // Bites are carved radially toward `centre`; base positions and colours are kept so healing is exact.
+  const posAttr = geometry.getAttribute('position') as THREE.BufferAttribute;
+  const colAttr = geometry.getAttribute('color') as THREE.BufferAttribute;
+  posAttr.setUsage(THREE.DynamicDrawUsage);
+  colAttr.setUsage(THREE.DynamicDrawUsage);
+  const basePos = Float32Array.from(posAttr.array as Float32Array);
+  const baseCol = Float32Array.from(colAttr.array as Float32Array);
+  const vCount = posAttr.count;
+  const vAngle = new Float32Array(vCount);
+  const vRag = new Float32Array(vCount);
+  const vIsCrust = new Uint8Array(vCount);
+  const ragNoise = makeNoise(seed + 29);
+  for (let i = 0; i < vCount; i++) {
+    const x = basePos[i * 3], y = basePos[i * 3 + 1], z = basePos[i * 3 + 2];
+    vAngle[i] = Math.atan2(y - centre.y, x - centre.x);
+    // Torn bread is ragged, not scalloped: per-vertex roughness that only shows where a bite is.
+    vRag[i] = ragNoise(x * 22, y * 22, z * 22);
+    vIsCrust[i] = baseCol[i * 3] < 0.99 ? 1 : 0;
+  }
+  const tornTint = new THREE.Color('#f2e4c6');
+  const bites: Bite[] = [];
+  let sinceTear = Infinity;
+  let lastBiteAngle = 0;
+  let dirty = false;
+
+  const carve = () => {
+    const p = posAttr.array as Float32Array;
+    const c = colAttr.array as Float32Array;
+    for (let i = 0; i < vCount; i++) {
+      const s = bites.length ? shrinkAt(bites, vAngle[i]) : 0;
+      const k = 1 - s * (1 + vRag[i] * 0.35);
+      const bx = basePos[i * 3], by = basePos[i * 3 + 1], bz = basePos[i * 3 + 2];
+      p[i * 3] = centre.x + (bx - centre.x) * k;
+      p[i * 3 + 1] = centre.y + (by - centre.y) * k;
+      // A torn edge is a touch thinner than the crusted one, pulled down toward the base.
+      p[i * 3 + 2] = bz * (1 - s * 0.35);
+      const t = vIsCrust[i] ? THREE.MathUtils.clamp(s / 0.1, 0, 1) : 0;
+      c[i * 3] = THREE.MathUtils.lerp(baseCol[i * 3], tornTint.r, t);
+      c[i * 3 + 1] = THREE.MathUtils.lerp(baseCol[i * 3 + 1], tornTint.g, t);
+      c[i * 3 + 2] = THREE.MathUtils.lerp(baseCol[i * 3 + 2], tornTint.b, t);
+    }
+    posAttr.needsUpdate = true;
+    colAttr.needsUpdate = true;
+    geometry.computeVertexNormals();
+  };
+
+  const takeBite = (desired: number) => {
+    // An already-gnawed spot sends the next bite to its less-eaten neighbour, so the slice is worked around.
+    let angle = wrapAngle(desired);
+    if (shrinkAt(bites, angle) > MAX_SHRINK * 0.8) {
+      for (let step = 1; step <= 7; step++) {
+        const off = step * BITE_HALF_WIDTH * 0.7;
+        const l = wrapAngle(desired - off), r = wrapAngle(desired + off);
+        const sl = shrinkAt(bites, l), sr = shrinkAt(bites, r);
+        if (Math.min(sl, sr) <= MAX_SHRINK * 0.8) {
+          angle = sl <= sr ? l : r;
+          break;
+        }
+      }
+    }
+    bites.push({ angle, amount: 0, target: 1, retired: false });
+    let live = 0;
+    for (let i = bites.length - 1; i >= 0; i--) {
+      if (!bites[i].retired && ++live > MAX_BITES) bites[i].retired = true;
+    }
+    lastBiteAngle = angle;
+    sinceTear = 0;
+    dirty = true;
+  };
+
   const toLocalDir = (worldDir: THREE.Vector3, out: THREE.Vector3) => {
     // Lean is expressed in the root's own yaw frame so pitch/roll mean the same whatever way the slice faces.
     const c = Math.cos(-baseYaw), s = Math.sin(-baseYaw);
@@ -286,11 +436,17 @@ export function createBread(parent: THREE.Object3D, anchor: THREE.Vector3, shado
     object: root,
     tearPoint(out = new THREE.Vector3()) {
       mesh.updateWorldMatrix(true, false);
-      return out.copy(tearLocal).applyMatrix4(mesh.matrixWorld);
+      if (!Number.isFinite(sinceTear)) return out.copy(tearLocal).applyMatrix4(mesh.matrixWorld);
+      // Where the latest bite sits once carved, so the crumb visibly comes away from the gap.
+      const r = edgeRadius(lastBiteAngle) * (1 - Math.max(shrinkAt(bites, lastBiteAngle), BITE_DEPTH * 0.6));
+      out.set(centre.x + Math.cos(lastBiteAngle) * r, centre.y + Math.sin(lastBiteAngle) * r, depth * 0.7);
+      return out.applyMatrix4(mesh.matrixWorld);
     },
     tear(toward, strength = 1) {
       tearWorld.subVectors(toward, root.position).setY(0);
       toLocalDir(tearWorld, leanAxis);
+      // The mesh lies flat via a -90 degree x rotation, so the root frame's +z is the shape's -y.
+      takeBite(Math.atan2(-leanAxis.z, leanAxis.x) + (Math.random() * 2 - 1) * 0.3);
       squashSpring.kick(-5.5 * strength);
       // The slice flicks away from the pull, the way it does when a piece finally gives.
       pitchSpring.kick(-leanAxis.z * 4.5 * strength);
@@ -305,6 +461,21 @@ export function createBread(parent: THREE.Object3D, anchor: THREE.Vector3, shado
       mesh.receiveShadow = on;
     },
     update(dt) {
+      sinceTear += dt;
+      const healing = sinceTear > HEAL_DELAY;
+      for (let i = bites.length - 1; i >= 0; i--) {
+        const b = bites[i];
+        if (healing || b.retired) b.target = 0;
+        if (b.amount < b.target) b.amount = Math.min(b.target, b.amount + dt * BITE_GROW_RATE);
+        else if (b.amount > b.target) b.amount = Math.max(b.target, b.amount - dt * HEAL_RATE);
+        else continue;
+        dirty = true;
+        if (b.amount <= 0 && b.target <= 0) bites.splice(i, 1);
+      }
+      if (dirty) {
+        carve();
+        dirty = false;
+      }
       pullAmount += (pullTarget - pullAmount) * (1 - Math.exp(-dt * 14));
       toLocalDir(pullDir, leanAxis);
       pitchSpring.target = leanAxis.z * 0.09 * pullAmount;
