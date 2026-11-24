@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>HUD lab</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font-family: system-ui, sans-serif;
+      }
+      body {
+        /* A rough stand-in for the park so legibility can be judged against sky, grass and path. */
+        background:
+          radial-gradient(ellipse 60% 18% at 50% 92%, #c9b48d 0 60%, transparent 61%),
+          linear-gradient(#a9cfe6 0%, #dcebe9 38%, #8fb269 39%, #6d9a4e 70%, #5b8742 100%);
+        overflow: hidden;
+      }
+      #panel {
+        position: fixed;
+        top: 64px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(560px, calc(100% - 24px));
+        max-height: 46vh;
+        overflow: auto;
+        z-index: 20;
+        padding: 10px;
+        border-radius: 12px;
+        background: rgba(20, 24, 20, 0.72);
+        color: #eee;
+        font-size: 12px;
+      }
+      #panel fieldset {
+        border: 1px solid #555;
+        border-radius: 8px;
+        margin: 0 0 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      #panel legend {
+        padding: 0 4px;
+        opacity: 0.7;
+      }
+      #panel button {
+        font: inherit;
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid #777;
+        background: #2a2f2a;
+        color: #fff;
+        cursor: pointer;
+      }
+      #panel button[aria-pressed='true'] {
+        background: #3d6b3d;
+      }
+      #said {
+        font-family: ui-monospace, monospace;
+        white-space: pre-wrap;
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="hud-root"></div>
+    <div id="panel">
+      <fieldset id="events"><legend>bus events</legend></fieldset>
+      <fieldset id="visit"><legend>visit</legend></fieldset>
+      <fieldset id="counter"><legend>counter</legend></fieldset>
+      <fieldset id="env"><legend>env</legend></fieldset>
+      <div id="said">announcer: (nothing yet)</div>
+    </div>
+    <script type="module" src="./hud.ts"></script>
+  </body>
+</html>

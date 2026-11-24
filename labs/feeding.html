@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Feeding lab</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #e9dcc6; font: 13px/1.4 system-ui, sans-serif; color: #2c241b; }
+      #stage { position: fixed; inset: 0; }
+      #panel {
+        position: fixed; top: 8px; right: 8px; width: 250px; max-height: calc(100% - 16px); overflow: auto;
+        background: rgba(255, 250, 240, 0.92); border-radius: 8px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.15);
+      }
+      #panel h1 { font-size: 14px; margin: 0 0 6px; }
+      #panel fieldset { border: 1px solid #d8c9ad; border-radius: 6px; margin: 0 0 8px; padding: 6px 8px; }
+      #panel legend { font-weight: 600; }
+      #panel label { display: flex; gap: 6px; align-items: center; justify-content: space-between; margin: 3px 0; }
+      #panel button { font: inherit; margin: 2px 0; }
+      #log { font: 11px/1.35 ui-monospace, monospace; white-space: pre-wrap; max-height: 180px; overflow: auto; background: #fffdf8; padding: 4px; border-radius: 4px; }
+      #stats { font: 11px/1.35 ui-monospace, monospace; white-space: pre; }
+      #panel.collapsed > :not(h1) { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <aside id="panel">
+      <h1>Feeding lab <button id="collapse" type="button" style="float:right">–</button></h1>
+      <fieldset>
+        <legend>Modules</legend>
+        <label>Real scene <input type="checkbox" id="realScene" /></label>
+        <label>Real pigeon <input type="checkbox" id="realPigeon" /></label>
+        <label>Real state <input type="checkbox" id="realState" /></label>
+        <div id="moduleNote"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Visit (stub state; reloads)</legend>
+        <label>Flock size <input type="number" id="flock" min="1" max="24" style="width:4em" /></label>
+        <label>Gerald stage
+          <select id="stage-sel"><option>0</option><option>1</option><option>2</option><option>3</option></select>
+        </label>
+        <label>Offended <input type="checkbox" id="offended" /></label>
+        <label>Reduced motion <input type="checkbox" id="reduced" /></label>
+        <button id="apply" type="button">Apply &amp; reload</button>
+      </fieldset>
+      <fieldset>
+        <legend>Live</legend>
+        <label>New day, grow by <input type="number" id="growBy" value="3" min="0" max="10" style="width:3em" /></label>
+        <button id="newDay" type="button">New day (next toss feeds)</button>
+        <label>Max pigeons (stub scene)
+          <select id="maxP"><option>24</option><option>12</option><option>6</option><option>3</option></select>
+        </label>
+      </fieldset>
+      <div id="stats"></div>
+      <div id="log"></div>
+    </aside>
+    <script type="module" src="./feeding.ts"></script>
+  </body>
+</html>

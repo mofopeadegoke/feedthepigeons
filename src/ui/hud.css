@@ -1,0 +1,405 @@
+.ftp-hud {
+  /* Exposed so the integrator can line the hint up with wherever the bread ends up on screen. */
+  --ftp-hint-bottom: max(9rem, 24vh);
+  --ftp-ink: #3a2e23;
+  --ftp-ink-soft: #5a4a3b;
+  --ftp-paper: rgba(255, 249, 238, 0.8);
+  --ftp-paper-edge: rgba(92, 68, 44, 0.14);
+  --ftp-crust: #b9773a;
+  --ftp-crumb: #e9be7d;
+  --ftp-focus: #1f4fb8;
+  --ftp-gutter: 12px;
+
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  color: var(--ftp-ink);
+  font-family: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  font-size: 15px;
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.ftp-hud *,
+.ftp-hud *::before,
+.ftp-hud *::after {
+  box-sizing: border-box;
+}
+
+.ftp-pill {
+  display: inline-flex;
+  align-items: center;
+  background: var(--ftp-paper);
+  border: 1px solid var(--ftp-paper-edge);
+  border-radius: 999px;
+  box-shadow:
+    0 1px 1px rgba(50, 35, 20, 0.08),
+    0 6px 18px -6px rgba(50, 35, 20, 0.22);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
+  backdrop-filter: blur(8px) saturate(1.1);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ftp-pill {
+    background: rgba(255, 249, 238, 0.92);
+  }
+}
+
+/* ------------------------------------------------------------------ streak */
+
+.ftp-streak {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + var(--ftp-gutter));
+  left: calc(env(safe-area-inset-left, 0px) + var(--ftp-gutter));
+  gap: 7px;
+  height: 38px;
+  padding: 0 14px 0 9px;
+  font-weight: 650;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 400ms ease,
+    transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ftp-streak[data-visible='true'] {
+  opacity: 1;
+  transform: none;
+}
+
+.ftp-streak svg {
+  width: 24px;
+  height: 22px;
+  flex: none;
+  overflow: visible;
+}
+
+.ftp-streak.is-popping {
+  animation: ftp-pop 620ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.ftp-streak.is-popping svg {
+  animation: ftp-wiggle 700ms ease-out both;
+}
+
+@keyframes ftp-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ftp-wiggle {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-12deg);
+  }
+  55% {
+    transform: rotate(8deg);
+  }
+  80% {
+    transform: rotate(-3deg);
+  }
+}
+
+/* ------------------------------------------------------------------ sound */
+
+.ftp-sound {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + var(--ftp-gutter) - 3px);
+  right: calc(env(safe-area-inset-right, 0px) + var(--ftp-gutter) - 3px);
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  margin: 0;
+  color: var(--ftp-ink);
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease;
+}
+
+.ftp-sound:hover {
+  background: rgba(255, 251, 243, 0.94);
+}
+
+.ftp-sound:active {
+  transform: scale(0.94);
+}
+
+.ftp-sound:focus {
+  outline: none;
+}
+
+.ftp-sound:focus-visible,
+.ftp-hud :focus-visible {
+  outline: 3px solid var(--ftp-focus);
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 6px 18px -6px rgba(50, 35, 20, 0.22);
+}
+
+.ftp-sound svg {
+  width: 24px;
+  height: 24px;
+}
+
+.ftp-sound .ftp-waves,
+.ftp-sound .ftp-mute {
+  transition: opacity 180ms ease;
+}
+
+.ftp-sound[aria-pressed='true'] .ftp-mute,
+.ftp-sound[aria-pressed='false'] .ftp-waves {
+  opacity: 0;
+}
+
+/* ------------------------------------------------------------------ counter */
+
+.ftp-counter {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--ftp-gutter));
+  max-width: calc(100% - 2 * var(--ftp-gutter) - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  margin: 0;
+  padding: 6px 13px;
+  /* Block, not the pill's flex: flex would swallow the spaces between the number and the words. */
+  display: block;
+  width: max-content;
+  color: var(--ftp-ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 900ms ease,
+    transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ftp-counter[data-ready='true'] {
+  opacity: 0.92;
+  transform: translate(-50%, 0);
+}
+
+.ftp-counter .ftp-num {
+  color: var(--ftp-ink);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 380px) {
+  .ftp-hud {
+    --ftp-gutter: 10px;
+  }
+  .ftp-counter {
+    font-size: 12px;
+    padding: 5px 11px;
+    white-space: normal;
+  }
+}
+
+/* ------------------------------------------------------------------ hint */
+
+.ftp-hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--ftp-hint-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transform: translateX(-50%);
+  color: #fffaf1;
+  text-align: center;
+  text-shadow:
+    0 1px 2px rgba(40, 28, 16, 0.55),
+    0 0 14px rgba(40, 28, 16, 0.35);
+  opacity: 0;
+  animation: ftp-hint-in 900ms 700ms ease forwards;
+}
+
+.ftp-hint.is-leaving {
+  animation: none;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.ftp-hint-hand {
+  position: relative;
+  width: 56px;
+  height: 72px;
+}
+
+.ftp-hint-hand svg {
+  position: absolute;
+  left: 8px;
+  bottom: 0;
+  width: 40px;
+  height: 48px;
+  filter: drop-shadow(0 1px 1.5px rgba(40, 28, 16, 0.45));
+  animation: ftp-swipe 2.4s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+
+.ftp-hint-hand .ftp-hint-crumb {
+  position: absolute;
+  left: 22px;
+  top: 8px;
+  width: 9px;
+  height: 7px;
+  border-radius: 45% 55% 40% 60%;
+  background: var(--ftp-crumb);
+  box-shadow: inset -1px -1px 0 var(--ftp-crust);
+  opacity: 0;
+  animation: ftp-crumb-fly 2.4s cubic-bezier(0.2, 0.7, 0.3, 1) infinite;
+}
+
+.ftp-hint-label {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.ftp-hint-keys {
+  font-size: 12.5px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.ftp-hint-keys[hidden] {
+  display: none;
+}
+
+.ftp-hint kbd {
+  display: inline-block;
+  padding: 0 6px;
+  border: 1px solid rgba(255, 250, 241, 0.7);
+  border-radius: 5px;
+  font: inherit;
+  line-height: 1.35;
+}
+
+@keyframes ftp-hint-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ftp-swipe {
+  0%,
+  12% {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  22% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
+  55% {
+    transform: translateY(-20px);
+    opacity: 1;
+  }
+  75%,
+  100% {
+    transform: translateY(-26px);
+    opacity: 0;
+  }
+}
+
+@keyframes ftp-crumb-fly {
+  0%,
+  48% {
+    transform: translate(0, 18px) scale(0.8);
+    opacity: 0;
+  }
+  52% {
+    opacity: 1;
+  }
+  85% {
+    transform: translate(4px, -14px) scale(0.6) rotate(140deg);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(5px, -18px) scale(0.5) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------ reduced motion */
+
+.ftp-hud.is-still .ftp-streak,
+.ftp-hud.is-still .ftp-counter,
+.ftp-hud.is-still .ftp-sound {
+  transition-duration: 1ms;
+}
+
+.ftp-hud.is-still .ftp-streak.is-popping,
+.ftp-hud.is-still .ftp-streak.is-popping svg {
+  animation: none;
+}
+
+.ftp-hud.is-still .ftp-hint {
+  animation: none;
+  opacity: 1;
+}
+
+.ftp-hud.is-still .ftp-hint.is-leaving {
+  opacity: 0;
+  transition-duration: 1ms;
+}
+
+.ftp-hud.is-still .ftp-hint-hand svg {
+  animation: none;
+  transform: translateY(-8px);
+}
+
+.ftp-hud.is-still .ftp-hint-hand .ftp-hint-crumb {
+  animation: none;
+  opacity: 1;
+  transform: translate(2px, -6px) scale(0.7);
+}
+
+/* ------------------------------------------------------------------ screen reader */
+
+.ftp-sr {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (forced-colors: active) {
+  .ftp-pill {
+    border: 1px solid CanvasText;
+  }
+  .ftp-sound:focus-visible {
+    outline-color: Highlight;
+  }
+}

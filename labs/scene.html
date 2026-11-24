@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Lab: scene</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #e9dcc6; overflow: hidden; }
+      #app { position: fixed; inset: 0; }
+      #panel {
+        position: fixed; top: 8px; left: 8px; z-index: 50; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100vw - 16px);
+        font: 12px/1.3 system-ui, sans-serif;
+      }
+      #panel button { padding: 5px 8px; border: 0; border-radius: 6px; background: rgba(255,250,240,.88); cursor: pointer; }
+      #panel button:focus-visible { outline: 2px solid #3b6b55; outline-offset: 2px; }
+      #info { padding: 5px 8px; border-radius: 6px; background: rgba(0,0,0,.45); color: #fff; }
+      #marker { position: fixed; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #e04; z-index: 40; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="panel">
+      <button data-flock="1">frameFlock(1)</button>
+      <button data-flock="24">frameFlock(24)</button>
+      <button data-q="high">high</button>
+      <button data-q="medium">medium</button>
+      <button data-q="low">low</button>
+      <button id="fallback">fallback</button>
+      <span id="info"></span>
+    </div>
+    <div id="marker" hidden></div>
+    <script type="module" src="./scene.ts"></script>
+  </body>
+</html>
