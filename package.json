@@ -7,12 +7,15 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:setup": "node --env-file=.env.local scripts/db-setup.ts"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.1",
     "three": "^0.187.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "@types/three": "^0.187.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.8"
