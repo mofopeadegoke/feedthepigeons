@@ -209,6 +209,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* "worldwide" made the line long enough to overflow its pill on common phone widths once the count grows. */
+@media (max-width: 430px) {
+  .ftp-counter {
+    white-space: normal;
+    text-align: center;
+  }
+}
+
 @media (max-width: 380px) {
   .ftp-hud {
     --ftp-gutter: 10px;

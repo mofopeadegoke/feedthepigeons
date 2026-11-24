@@ -201,7 +201,7 @@ export function createHud({ root, bus, env, state, counter }: HudDeps): { dispos
 
   function renderCount(n: number) {
     num.textContent = fmt.format(n);
-    words.textContent = n === 1 ? ' crumb tossed in the last 24 hours' : ' crumbs tossed in the last 24 hours';
+    words.textContent = n === 1 ? ' crumb tossed worldwide in the last 24 hours' : ' crumbs tossed worldwide in the last 24 hours';
   }
 
   function step(now: number) {

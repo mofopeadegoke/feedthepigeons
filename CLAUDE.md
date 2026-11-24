@@ -50,7 +50,7 @@ This is a design-engineering portfolio piece. How it feels matters more than how
 - The **time-of-day idea is not included.**
 
 ### UI and quality
-- **Overlay only, no header or menu.** The streak is top-left and small, with a drawn bread icon ("Day 12"). The sound toggle is a top-right icon button. The worldwide counter is quiet text at bottom-centre ("4,213 crumbs tossed in the last 24 hours").
+- **Overlay only, no header or menu.** The streak is top-left and small, with a drawn bread icon ("Day 12"). The sound toggle is a top-right icon button. The worldwide counter is quiet text at bottom-centre ("4,213 crumbs tossed worldwide in the last 24 hours").
 - **Loading**: a warm plain screen with a small head-bobbing pigeon silhouette, fading into the scene. No percentage bar. The counter text can appear immediately.
 - **Weak devices**: quality drops automatically (shadows, pixel ratio, flock cap). With no WebGL at all, show a still rendered image of the scene; crumbs still count and a short note explains.
 - **Reduced motion**: no camera drift or easing (cuts instead), no flutter-ins (new birds are simply there), shorter crumb arcs. Pigeons still walk and peck, but calmer.
